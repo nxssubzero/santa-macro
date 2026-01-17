@@ -111,6 +111,19 @@ local function UpdateTimer()
     StatusLabel.Text = "Total: " .. v3 .. (v6 and " | Position: Saved" or " | Position: Not Saved") .. " | Timer: " .. timeRemaining .. "s"
 end
 
+local function CheckForSpecialMessage()
+    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    for _, gui in pairs(playerGui:GetDescendants()) do
+        if gui:IsA("TextLabel") or gui:IsA("TextBox") then
+            local text = gui.Text
+            if text:find("New Title Unlocked") or text:find("Candy") or text:find("Cane") then
+                return true, text
+            end
+        end
+    end
+    return false, nil
+end
+
 local function StartTimer()
     timerActive = true
     timeRemaining = 60
@@ -160,21 +173,6 @@ local function StartTimer()
 end
 
 local holdCycleLoop = nil
-local cameraLoop = nil
-
-local function StartCameraTracking()
-    if cameraLoop then task.cancel(cameraLoop) end
-    cameraLoop = task.spawn(function()
-        while getgenv().KeremDaddy do
-            if not v5 and not timerActive then
-                local v18 = v8.CFrame.Position
-                v8.CFrame = CFrame.lookAt(v18, v4.Position)
-            end
-            task.wait()
-        end
-    end)
-end
-
 local function StartHoldCycle()
     if holdCycleLoop then task.cancel(holdCycleLoop) end
     holdCycleLoop = task.spawn(function()
@@ -216,18 +214,25 @@ workspace.Effects.ChildRemoved:Connect(function(v16)
     if v16.Name=="Present" and getgenv().KeremDaddy then
         v3+=1
         UpdateTimer()
-        local v23={
-            content="",
-            embeds={{
-                title="Grand Piece Online",
-                description="Gift Wrapped",
-                type="rich",
-                color=tonumber(47103),
-                fields={{name="Total Wrapped Gift:",value=v3,inline=false}},
-                footer={icon_url="",text="Farm (" .. os.date("%X") .. ")"}
-            }}
-        }
-        v9(v23)
+        
+        local hasSpecialMessage, messageText = CheckForSpecialMessage()
+        if hasSpecialMessage then
+            local v23={
+                content="@everyone",
+                embeds={{
+                    title="Grand Piece Online - SPECIAL DROP!",
+                    description="Gift Wrapped - Special Item Detected!",
+                    type="rich",
+                    color=tonumber(0xFFD700),
+                    fields={
+                        {name="Total Wrapped Gift:",value=v3,inline=false},
+                        {name="Special Message:",value=messageText,inline=false}
+                    },
+                    footer={icon_url="",text="Farm (" .. os.date("%X") .. ")"}
+                }}
+            }
+            v9(v23)
+        end
     end
 end)
 
@@ -294,12 +299,15 @@ StartButton.MouseButton1Click:Connect(function()
         if farmLoop then task.cancel(farmLoop) end
         farmLoop = task.spawn(function()
             StartHoldCycle()
-            StartCameraTracking()
             task.wait(12)
             StartTimer()
             
             while getgenv().KeremDaddy do
-                if v7 and not v2 and not v5 and not timerActive then
+                task.wait()
+                if v5 then continue end
+                local v18=v8.CFrame.Position
+                v8.CFrame=CFrame.lookAt(v18,v4.Position)
+                if v7 and not v2 and not timerActive then
                     task.wait(1)
                     v2=true
                     spawn(function()
@@ -321,7 +329,6 @@ StartButton.MouseButton1Click:Connect(function()
                         end)
                     end)
                 end
-                task.wait()
             end
         end)
     else
@@ -329,10 +336,6 @@ StartButton.MouseButton1Click:Connect(function()
         StartButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         StopM1Hold()
         timerActive = false
-        if cameraLoop then
-            task.cancel(cameraLoop)
-            cameraLoop = nil
-        end
         if holdCycleLoop then 
             task.cancel(holdCycleLoop)
             holdCycleLoop = nil
