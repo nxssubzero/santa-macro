@@ -160,6 +160,21 @@ local function StartTimer()
 end
 
 local holdCycleLoop = nil
+local cameraLoop = nil
+
+local function StartCameraTracking()
+    if cameraLoop then task.cancel(cameraLoop) end
+    cameraLoop = task.spawn(function()
+        while getgenv().KeremDaddy do
+            if not v5 and not timerActive then
+                local v18 = v8.CFrame.Position
+                v8.CFrame = CFrame.lookAt(v18, v4.Position)
+            end
+            task.wait()
+        end
+    end)
+end
+
 local function StartHoldCycle()
     if holdCycleLoop then task.cancel(holdCycleLoop) end
     holdCycleLoop = task.spawn(function()
@@ -279,15 +294,12 @@ StartButton.MouseButton1Click:Connect(function()
         if farmLoop then task.cancel(farmLoop) end
         farmLoop = task.spawn(function()
             StartHoldCycle()
+            StartCameraTracking()
             task.wait(12)
             StartTimer()
             
             while getgenv().KeremDaddy do
-                task.wait()
-                if v5 or timerActive then continue end
-                local v18=v8.CFrame.Position
-                v8.CFrame=CFrame.lookAt(v18,v4.Position)
-                if v7 and not v2 then
+                if v7 and not v2 and not v5 and not timerActive then
                     task.wait(1)
                     v2=true
                     spawn(function()
@@ -309,6 +321,7 @@ StartButton.MouseButton1Click:Connect(function()
                         end)
                     end)
                 end
+                task.wait()
             end
         end)
     else
@@ -316,6 +329,10 @@ StartButton.MouseButton1Click:Connect(function()
         StartButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         StopM1Hold()
         timerActive = false
+        if cameraLoop then
+            task.cancel(cameraLoop)
+            cameraLoop = nil
+        end
         if holdCycleLoop then 
             task.cancel(holdCycleLoop)
             holdCycleLoop = nil
