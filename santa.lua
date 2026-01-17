@@ -117,11 +117,14 @@ local function SmoothWalk(targetPos, speed)
     if collecting then return false end
     collecting = true
     
+    skyWalkActive = true
+    
     local startPos = hrp.Position
     local distance = (targetPos - startPos).Magnitude
     
     if distance > 250 then
         collecting = false
+        skyWalkActive = false
         return false
     end
     
@@ -132,6 +135,7 @@ local function SmoothWalk(targetPos, speed)
     
     local startTime = tick()
     local lastUpdate = 0
+    local lastSkyWalk = 0
     
     while tick() - startTime < duration do
         if not getgenv().KeremDaddy then break end
@@ -151,6 +155,11 @@ local function SmoothWalk(targetPos, speed)
         hrp.CFrame = CFrame.new(currentPos + wobble)
         UpdatePlatform(currentPos)
         
+        if tick() - lastSkyWalk > 0.7 then
+            ActivateSkyWalk()
+            lastSkyWalk = tick()
+        end
+        
         if tick() - lastUpdate > 0.1 then
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             lastUpdate = tick()
@@ -165,6 +174,7 @@ local function SmoothWalk(targetPos, speed)
     
     task.wait(math.random(5, 15) / 100)
     StopAntiDetect()
+    skyWalkActive = false
     collecting = false
     return true
 end
@@ -248,6 +258,32 @@ workspace.Effects.ChildAdded:Connect(function(v17)
     end
 end)
 
+local skyWalkActive = false
+local function ActivateSkyWalk()
+    if not skyWalkActive then return end
+    pcall(function()
+        if game.Players.LocalPlayer.Character then
+            local args = {
+                [1] = "Sky Walk2",
+                [2] = {
+                    ["char"] = game.Players.LocalPlayer.Character,
+                    ["cf"] = hrp.CFrame
+                }
+            }
+            game:GetService("ReplicatedStorage").Events.Skill:InvokeServer(unpack(args))
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.8)
+        if getgenv().KeremDaddy and skyWalkActive then
+            ActivateSkyWalk()
+        end
+    end
+end)
+
 local lastCheck = 0
 local function MainLoop()
     while getgenv().KeremDaddy do
@@ -298,10 +334,12 @@ ToggleButton.MouseButton1Click:Connect(function()
         ToggleButton.Text = "ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
         CreateInvisiblePlatform()
+        skyWalkActive = false
         task.spawn(MainLoop)
     else
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        skyWalkActive = false
         StopAntiDetect()
         if platform then 
             pcall(function() platform:Destroy() end)
