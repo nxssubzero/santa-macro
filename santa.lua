@@ -67,7 +67,7 @@ task.spawn(function()
         if getgenv().KeremDaddy and game.Players.LocalPlayer.Character then
             pcall(function()
                 local args = {
-                    [1] = "Sky Walk2",
+                    [1] = "Sky Walk",
                     [2] = {
                         ["char"] = game.Players.LocalPlayer.Character,
                         ["cf"] = hrp.CFrame
