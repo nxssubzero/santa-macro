@@ -53,50 +53,90 @@ if not getgenv().KeremDaddy then
     getgenv().KeremDaddy = true
 end
 
-local v0 = Instance.new("VirtualInputManager")
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
+
 local v1 = game:GetService("ProximityPromptService")
-local v2 = false
 local v3 = 0
 local v5 = false
-local v6 = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-local v7 = true
-local v8 = workspace.CurrentCamera
-local v11
+local collecting = false
 
-local function SmoothTween(targetPos, duration)
-    local char = game.Players.LocalPlayer.Character
-    if not char then return end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local TweenService = game:GetService("TweenService")
-    local info = TweenInfo.new(
-        duration or 0.5,
-        Enum.EasingStyle.Linear,
-        Enum.EasingDirection.Out
-    )
-    
-    local goal = {CFrame = CFrame.new(targetPos)}
-    local tween = TweenService:Create(hrp, info, goal)
-    tween:Play()
-    tween.Completed:Wait()
+local oldPos = hrp.CFrame
+local oldVelocity = Vector3.new(0, 0, 0)
+
+local platform
+local function CreatePlatform()
+    if platform then platform:Destroy() end
+    platform = Instance.new("Part")
+    platform.Size = Vector3.new(10, 0.5, 10)
+    platform.Transparency = 1
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Parent = workspace
 end
 
-local function FollowSanta()
-    pcall(function()
-        local santa = workspace.NPCs["Santa's Sleigh"]
-        if santa and santa:FindFirstChild("Deer") then
-            local santaPos = santa.Deer["Body.006"].Position
-            local offset = Vector3.new(
-                math.random(-15, 15),
-                math.random(-5, 5),
-                math.random(-15, 15)
-            )
-            local targetPos = santaPos + offset
-            SmoothTween(targetPos, 0.8)
+local function MovePlatform(pos)
+    if not platform then CreatePlatform() end
+    platform.CFrame = CFrame.new(pos.X, pos.Y - 3.5, pos.Z)
+end
+
+local function BypassMove(targetCFrame, duration)
+    if collecting then return end
+    collecting = true
+    
+    duration = duration or math.random(15, 25) / 10
+    
+    local startCFrame = hrp.CFrame
+    local distance = (targetCFrame.Position - startCFrame.Position).Magnitude
+    
+    if distance > 200 then
+        collecting = false
+        return
+    end
+    
+    local RunService = game:GetService("RunService")
+    local connection
+    
+    connection = RunService.Heartbeat:Connect(function()
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end)
+    
+    local startTime = tick()
+    while tick() - startTime < duration do
+        if not getgenv().KeremDaddy then break end
+        
+        local elapsed = tick() - startTime
+        local alpha = elapsed / duration
+        alpha = alpha * alpha * (3 - 2 * alpha)
+        
+        local newCFrame = startCFrame:Lerp(targetCFrame, alpha)
+        
+        hrp.CFrame = newCFrame
+        MovePlatform(newCFrame.Position)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        
+        task.wait()
+    end
+    
+    hrp.CFrame = targetCFrame
+    MovePlatform(targetCFrame.Position)
+    
+    connection:Disconnect()
+    task.wait(0.1)
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.CanCollide = true
+        end
+    end
+    
+    collecting = false
 end
 
 local function v9(v14)
@@ -114,6 +154,7 @@ end
 
 v1.PromptShown:Connect(function(v13)
     if getgenv().KeremDaddy then
+        task.wait(math.random(10, 30) / 100)
         pcall(function()
             fireproximityprompt(v13, 10)
         end)
@@ -132,7 +173,7 @@ workspace.Effects.ChildRemoved:Connect(function(v16)
                 type = "rich",
                 color = tonumber(47103),
                 fields = {{name = "Total Wrapped Gift:", value = tostring(v3), inline = false}},
-                footer = {icon_url = "", text = "KEREM THE KING (" .. os.date("%X") .. ")"}
+                footer = {icon_url = "", text = "(" .. os.date("%X") .. ")"}
             }}
         }
         v9(v23)
@@ -140,91 +181,81 @@ workspace.Effects.ChildRemoved:Connect(function(v16)
 end)
 
 workspace.Effects.ChildAdded:Connect(function(v17)
-    if not getgenv().KeremDaddy then return end
-    task.wait(0.1)
+    if not getgenv().KeremDaddy or v5 then return end
+    
+    task.wait(math.random(15, 35) / 100)
+    
     if v17.Name == "ChristmasGift" and v17:FindFirstChild("Highlight") and v17.Highlight.FillColor ~= Color3.fromRGB(109, 0, 0) then
-        if v5 then return end
         v5 = true
         task.spawn(function()
             while v17.Parent and v17.Parent == workspace.Effects and getgenv().KeremDaddy do
                 pcall(function()
-                    local giftPos = v17.Top.TopMiddle.Position
-                    SmoothTween(giftPos, 1.2)
+                    local giftPos = v17.Top.TopMiddle.CFrame
+                    BypassMove(giftPos, math.random(15, 25) / 10)
                 end)
                 
-                task.wait(1.5)
+                task.wait(math.random(10, 20) / 10)
                 
                 for _, v35 in pairs(workspace.Effects:GetChildren()) do
-                    if v35.Name == "Present" then
-                        local v38 = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v35.Position).Magnitude
-                        if v38 <= 50 then
+                    if v35.Name == "Present" and not collecting then
+                        local dist = (hrp.Position - v35.Position).Magnitude
+                        if dist <= 60 then
                             if v35:FindFirstChild("ProximityPrompt") and v35.ProximityPrompt.Enabled then
                                 pcall(function()
-                                    SmoothTween(v35.Position, 0.6)
-                                    task.wait(0.2)
+                                    BypassMove(v35.CFrame, math.random(10, 20) / 10)
+                                    task.wait(math.random(20, 40) / 100)
                                     fireproximityprompt(v35.ProximityPrompt)
                                 end)
                             end
                         end
-                        task.wait(0.4)
+                        task.wait(math.random(40, 70) / 100)
                     end
                 end
-                task.wait(1)
+                task.wait(1.5)
             end
             v5 = false
         end)
     end
 end)
 
-local lastFollowTime = 0
+local lastCheck = 0
 local function MainLoop()
     while getgenv().KeremDaddy do
-        task.wait(0.1)
-        if v5 then continue end
+        task.wait(math.random(50, 150) / 100)
         
-        pcall(function()
-            local v4 = workspace.NPCs["Santa's Sleigh"].Deer["Body.006"]
-            local v18 = v8.CFrame.Position
-            v8.CFrame = CFrame.lookAt(v18, v4.Position)
-        end)
+        if collecting or v5 then continue end
         
         local currentTime = tick()
-        if currentTime - lastFollowTime >= 3 then
-            lastFollowTime = currentTime
-            FollowSanta()
+        if currentTime - lastCheck >= math.random(40, 70) / 10 then
+            lastCheck = currentTime
+            
+            pcall(function()
+                local santa = workspace.NPCs["Santa's Sleigh"]
+                if santa and santa:FindFirstChild("Deer") then
+                    local santaPos = santa.Deer["Body.006"].CFrame
+                    local offset = CFrame.new(
+                        math.random(-25, 25),
+                        math.random(-8, 8),
+                        math.random(-25, 25)
+                    )
+                    BypassMove(santaPos * offset, math.random(20, 35) / 10)
+                end
+            end)
         end
         
-        if v7 and not v2 then
-            task.wait(1)
-            v2 = true
-            task.spawn(function()
-                v7 = false
-                v0:SendKeyEvent(true, Enum.KeyCode.X, false, game)
-                task.delay(13, function()
-                    v0:SendKeyEvent(false, Enum.KeyCode.X, false, game)
-                    task.wait(1)
-                    
-                    for _, v21 in pairs(workspace.Effects:GetChildren()) do
-                        if v21.Name == "Present" then
-                            local v26 = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v21.Position).Magnitude
-                            if v26 <= 40 then
-                                if v21:FindFirstChild("ProximityPrompt") and v21.ProximityPrompt.Enabled then
-                                    pcall(function()
-                                        SmoothTween(v21.Position, 0.7)
-                                        task.wait(0.2)
-                                    end)
-                                end
-                            end
-                            task.wait(0.5)
-                        end
+        for _, v21 in pairs(workspace.Effects:GetChildren()) do
+            if v21.Name == "Present" and not collecting then
+                local dist = (hrp.Position - v21.Position).Magnitude
+                if dist <= 50 and dist > 5 then
+                    if v21:FindFirstChild("ProximityPrompt") and v21.ProximityPrompt.Enabled then
+                        pcall(function()
+                            BypassMove(v21.CFrame, math.random(20, 40) / 10)
+                            task.wait(math.random(15, 35) / 100)
+                        end)
                     end
-                    
-                    task.delay(19, function()
-                        v2 = false
-                        v7 = true
-                    end)
-                end)
-            end)
+                end
+                task.wait(math.random(50, 100) / 100)
+            end
         end
     end
 end
@@ -241,5 +272,6 @@ ToggleButton.MouseButton1Click:Connect(function()
     else
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        if platform then platform:Destroy() platform = nil end
     end
 end)
