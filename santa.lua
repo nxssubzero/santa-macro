@@ -56,128 +56,28 @@ end
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
-local hum = char:WaitForChild("Humanoid")
 
 local v1 = game:GetService("ProximityPromptService")
-local RunService = game:GetService("RunService")
 local v3 = 0
-local v5 = false
 local collecting = false
-local platform
 
-local function CreateInvisiblePlatform()
-    if platform then pcall(function() platform:Destroy() end) end
-    platform = Instance.new("Part")
-    platform.Name = "FloorBypass"
-    platform.Size = Vector3.new(8, 0.2, 8)
-    platform.Transparency = 1
-    platform.Anchored = true
-    platform.CanCollide = true
-    platform.Material = Enum.Material.SmoothPlastic
-    platform.Parent = workspace
-end
-
-local function UpdatePlatform(pos)
-    if not platform then CreateInvisiblePlatform() end
-    platform.CFrame = CFrame.new(pos.X, pos.Y - 3.2, pos.Z)
-end
-
-local antiDetectConnection
-local function StartAntiDetect()
-    if antiDetectConnection then antiDetectConnection:Disconnect() end
-    antiDetectConnection = RunService.Heartbeat:Connect(function()
-        if not getgenv().KeremDaddy then return end
-        pcall(function()
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end)
-    end)
-end
-
-local function StopAntiDetect()
-    if antiDetectConnection then 
-        antiDetectConnection:Disconnect() 
-        antiDetectConnection = nil
-    end
-    pcall(function()
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.CanCollide = true
-            end
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if getgenv().KeremDaddy and game.Players.LocalPlayer.Character then
+            pcall(function()
+                local args = {
+                    [1] = "Sky Walk2",
+                    [2] = {
+                        ["char"] = game.Players.LocalPlayer.Character,
+                        ["cf"] = hrp.CFrame
+                    }
+                }
+                game:GetService("ReplicatedStorage").Events.Skill:InvokeServer(unpack(args))
+            end)
         end
-    end)
-end
-
-local function SmoothWalk(targetPos, speed)
-    if collecting then return false end
-    collecting = true
-    
-    skyWalkActive = true
-    
-    local startPos = hrp.Position
-    local distance = (targetPos - startPos).Magnitude
-    
-    if distance > 250 then
-        collecting = false
-        skyWalkActive = false
-        return false
     end
-    
-    speed = speed or math.random(12, 18)
-    local duration = distance / speed
-    
-    StartAntiDetect()
-    
-    local startTime = tick()
-    local lastUpdate = 0
-    local lastSkyWalk = 0
-    
-    while tick() - startTime < duration do
-        if not getgenv().KeremDaddy then break end
-        
-        local elapsed = tick() - startTime
-        local progress = elapsed / duration
-        progress = math.sin(progress * math.pi * 0.5)
-        
-        local currentPos = startPos:Lerp(targetPos, progress)
-        
-        local wobble = Vector3.new(
-            math.sin(elapsed * 2) * 0.3,
-            math.sin(elapsed * 3) * 0.2,
-            math.cos(elapsed * 2) * 0.3
-        )
-        
-        hrp.CFrame = CFrame.new(currentPos + wobble)
-        UpdatePlatform(currentPos)
-        
-        if tick() - lastSkyWalk > 0.7 then
-            ActivateSkyWalk()
-            lastSkyWalk = tick()
-        end
-        
-        if tick() - lastUpdate > 0.1 then
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            lastUpdate = tick()
-        end
-        
-        RunService.Heartbeat:Wait()
-    end
-    
-    hrp.CFrame = CFrame.new(targetPos)
-    UpdatePlatform(targetPos)
-    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-    
-    task.wait(math.random(5, 15) / 100)
-    StopAntiDetect()
-    skyWalkActive = false
-    collecting = false
-    return true
-end
+end)
 
 local function v9(v14)
     if getgenv().Webhook and getgenv().Webhook ~= "" then
@@ -194,7 +94,7 @@ end
 
 v1.PromptShown:Connect(function(v13)
     if getgenv().KeremDaddy then
-        task.wait(math.random(8, 20) / 100)
+        task.wait(0.1)
         pcall(function()
             fireproximityprompt(v13, 10)
         end)
@@ -221,111 +121,72 @@ workspace.Effects.ChildRemoved:Connect(function(v16)
 end)
 
 workspace.Effects.ChildAdded:Connect(function(v17)
-    if not getgenv().KeremDaddy or v5 then return end
+    if not getgenv().KeremDaddy or collecting then return end
     
-    task.wait(math.random(10, 25) / 100)
+    task.wait(0.2)
     
     if v17.Name == "ChristmasGift" and v17:FindFirstChild("Highlight") and v17.Highlight.FillColor ~= Color3.fromRGB(109, 0, 0) then
-        v5 = true
+        collecting = true
         task.spawn(function()
             while v17.Parent and v17.Parent == workspace.Effects and getgenv().KeremDaddy do
                 pcall(function()
-                    local giftPos = v17.Top.TopMiddle.Position
-                    SmoothWalk(giftPos, math.random(10, 14))
+                    hrp.CFrame = v17.Top.TopMiddle.CFrame
                 end)
                 
-                task.wait(math.random(12, 20) / 10)
+                task.wait(1)
                 
                 for _, v35 in pairs(workspace.Effects:GetChildren()) do
-                    if v35.Name == "Present" and not collecting then
+                    if v35.Name == "Present" then
                         local dist = (hrp.Position - v35.Position).Magnitude
-                        if dist <= 65 then
+                        if dist <= 60 then
                             if v35:FindFirstChild("ProximityPrompt") and v35.ProximityPrompt.Enabled then
                                 pcall(function()
-                                    SmoothWalk(v35.Position, math.random(14, 20))
-                                    task.wait(math.random(10, 25) / 100)
+                                    hrp.CFrame = v35.CFrame
+                                    task.wait(0.1)
                                     fireproximityprompt(v35.ProximityPrompt)
                                 end)
                             end
                         end
-                        task.wait(math.random(30, 60) / 100)
+                        task.wait(0.3)
                     end
                 end
-                task.wait(math.random(15, 25) / 10)
+                task.wait(1)
             end
-            v5 = false
+            collecting = false
         end)
     end
 end)
 
-local skyWalkActive = false
-local function ActivateSkyWalk()
-    if not skyWalkActive then return end
-    pcall(function()
-        if game.Players.LocalPlayer.Character then
-            local args = {
-                [1] = "Sky Walk2",
-                [2] = {
-                    ["char"] = game.Players.LocalPlayer.Character,
-                    ["cf"] = hrp.CFrame
-                }
-            }
-            game:GetService("ReplicatedStorage").Events.Skill:InvokeServer(unpack(args))
-        end
-    end)
-end
-
 task.spawn(function()
-    while true do
-        task.wait(0.8)
-        if getgenv().KeremDaddy and skyWalkActive then
-            ActivateSkyWalk()
-        end
-    end
-end)
-
-local lastCheck = 0
-local function MainLoop()
     while getgenv().KeremDaddy do
-        task.wait(math.random(80, 150) / 100)
+        task.wait(5)
         
-        if collecting or v5 then continue end
+        if collecting then continue end
         
-        local currentTime = tick()
-        if currentTime - lastCheck >= math.random(50, 80) / 10 then
-            lastCheck = currentTime
-            
-            pcall(function()
-                local santa = workspace.NPCs["Santa's Sleigh"]
-                if santa and santa:FindFirstChild("Deer") then
-                    local santaPos = santa.Deer["Body.006"].Position
-                    local offsetX = math.random(-30, 30)
-                    local offsetY = math.random(-5, 5)
-                    local offsetZ = math.random(-30, 30)
-                    local targetPos = santaPos + Vector3.new(offsetX, offsetY, offsetZ)
-                    SmoothWalk(targetPos, math.random(8, 12))
-                end
-            end)
-        end
+        pcall(function()
+            local santa = workspace.NPCs["Santa's Sleigh"]
+            if santa and santa:FindFirstChild("Deer") then
+                local santaPos = santa.Deer["Body.006"].CFrame
+                hrp.CFrame = santaPos * CFrame.new(math.random(-20, 20), math.random(-5, 5), math.random(-20, 20))
+            end
+        end)
         
         for _, v21 in pairs(workspace.Effects:GetChildren()) do
             if v21.Name == "Present" and not collecting then
                 local dist = (hrp.Position - v21.Position).Magnitude
-                if dist <= 55 and dist > 8 then
+                if dist <= 50 then
                     if v21:FindFirstChild("ProximityPrompt") and v21.ProximityPrompt.Enabled then
                         pcall(function()
-                            SmoothWalk(v21.Position, math.random(15, 22))
-                            task.wait(math.random(8, 18) / 100)
+                            hrp.CFrame = v21.CFrame
+                            task.wait(0.1)
                         end)
                     end
                 end
-                task.wait(math.random(40, 80) / 100)
+                task.wait(0.5)
             end
         end
     end
-end
-
-task.spawn(MainLoop)
+end)
 
 ToggleButton.MouseButton1Click:Connect(function()
     getgenv().KeremDaddy = not getgenv().KeremDaddy
@@ -333,19 +194,8 @@ ToggleButton.MouseButton1Click:Connect(function()
     if getgenv().KeremDaddy then
         ToggleButton.Text = "ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
-        CreateInvisiblePlatform()
-        skyWalkActive = false
-        task.spawn(MainLoop)
     else
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-        skyWalkActive = false
-        StopAntiDetect()
-        if platform then 
-            pcall(function() platform:Destroy() end)
-            platform = nil 
-        end
     end
 end)
-
-CreateInvisiblePlatform()
