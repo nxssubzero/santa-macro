@@ -29,11 +29,11 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 18
 
 ToggleButton.Parent = Frame
-ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 ToggleButton.Position = UDim2.new(0.1, 0, 0.4, 0)
 ToggleButton.Size = UDim2.new(0.8, 0, 0, 40)
 ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.Text = "ON"
+ToggleButton.Text = "OFF"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextSize = 16
 
@@ -49,153 +49,202 @@ StatusLabel.Text = "Total: 0"
 StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 StatusLabel.TextSize = 14
 
-if not getgenv().KeremDaddy then
-    getgenv().KeremDaddy = true
-end
+getgenv().FarmActive = false
+local giftCount = 0
+local isMoving = false
 
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
-local v1 = game:GetService("ProximityPromptService")
-local v3 = 0
-local collecting = false
+local function GetChar()
+    return player.Character
+end
 
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if getgenv().KeremDaddy and game.Players.LocalPlayer.Character then
+local function GetHRP()
+    local char = GetChar()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function SendWebhook(count)
+    if not getgenv().Webhook or getgenv().Webhook == "" then return end
+    pcall(function()
+        local data = {
+            embeds = {{
+                title = "Gift Collected",
+                description = "Total gifts: " .. count,
+                color = 3066993,
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
+            }}
+        }
+        request({
+            Url = getgenv().Webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = game:GetService("HttpService"):JSONEncode(data)
+        })
+    end)
+end
+
+local skyWalkLoop
+local function StartSkyWalk()
+    if skyWalkLoop then return end
+    skyWalkLoop = task.spawn(function()
+        while getgenv().FarmActive do
+            task.wait(0.8)
             pcall(function()
-                local args = {
-                    [1] = "Sky Walk",
-                    [2] = {
-                        ["char"] = game.Players.LocalPlayer.Character,
-                        ["cf"] = hrp.CFrame
+                local char = GetChar()
+                local hrp = GetHRP()
+                if char and hrp then
+                    local args = {
+                        [1] = "Sky Walk2",
+                        [2] = {
+                            ["char"] = char,
+                            ["cf"] = hrp.CFrame
+                        }
                     }
-                }
-                game:GetService("ReplicatedStorage").Events.Skill:InvokeServer(unpack(args))
+                    game:GetService("ReplicatedStorage").Events.Skill:InvokeServer(unpack(args))
+                end
             end)
         end
-    end
-end)
+    end)
+end
 
-local function v9(v14)
-    if getgenv().Webhook and getgenv().Webhook ~= "" then
-        pcall(function()
-            request({
-                Url = getgenv().Webhook,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = game:GetService("HttpService"):JSONEncode(v14)
-            })
-        end)
+local function StopSkyWalk()
+    if skyWalkLoop then
+        task.cancel(skyWalkLoop)
+        skyWalkLoop = nil
     end
 end
 
-v1.PromptShown:Connect(function(v13)
-    if getgenv().KeremDaddy then
-        task.wait(0.1)
+ProximityPromptService.PromptShown:Connect(function(prompt)
+    if getgenv().FarmActive then
+        task.wait(0.05)
         pcall(function()
-            fireproximityprompt(v13, 10)
+            fireproximityprompt(prompt)
         end)
     end
 end)
 
-workspace.Effects.ChildRemoved:Connect(function(v16)
-    if v16.Name == "Present" and getgenv().KeremDaddy then
-        v3 = v3 + 1
-        StatusLabel.Text = "Total: " .. v3
-        local v23 = {
-            content = "",
-            embeds = {{
-                title = "Grand Piece Online",
-                description = "Gift Wrapped",
-                type = "rich",
-                color = tonumber(47103),
-                fields = {{name = "Total Wrapped Gift:", value = tostring(v3), inline = false}},
-                footer = {icon_url = "", text = "Farm (" .. os.date("%X") .. ")"}
-            }}
-        }
-        v9(v23)
+workspace.Effects.ChildRemoved:Connect(function(child)
+    if child.Name == "Present" and getgenv().FarmActive then
+        giftCount = giftCount + 1
+        StatusLabel.Text = "Total: " .. giftCount
+        SendWebhook(giftCount)
     end
 end)
 
-workspace.Effects.ChildAdded:Connect(function(v17)
-    if not getgenv().KeremDaddy or collecting then return end
+local function TeleportTo(cframe)
+    local hrp = GetHRP()
+    if not hrp then return false end
+    hrp.CFrame = cframe
+    return true
+end
+
+workspace.Effects.ChildAdded:Connect(function(gift)
+    if not getgenv().FarmActive or isMoving then return end
     
-    task.wait(0.2)
+    task.wait(0.1)
     
-    if v17.Name == "ChristmasGift" and v17:FindFirstChild("Highlight") and v17.Highlight.FillColor ~= Color3.fromRGB(109, 0, 0) then
-        collecting = true
+    if gift.Name == "ChristmasGift" and gift:FindFirstChild("Highlight") then
+        if gift.Highlight.FillColor == Color3.fromRGB(109, 0, 0) then return end
+        
+        isMoving = true
         task.spawn(function()
-            while v17.Parent and v17.Parent == workspace.Effects and getgenv().KeremDaddy do
+            while gift.Parent == workspace.Effects and getgenv().FarmActive do
                 pcall(function()
-                    hrp.CFrame = v17.Top.TopMiddle.CFrame
+                    if gift:FindFirstChild("Top") and gift.Top:FindFirstChild("TopMiddle") then
+                        TeleportTo(gift.Top.TopMiddle.CFrame)
+                    end
                 end)
                 
-                task.wait(1)
+                task.wait(0.5)
                 
-                for _, v35 in pairs(workspace.Effects:GetChildren()) do
-                    if v35.Name == "Present" then
-                        local dist = (hrp.Position - v35.Position).Magnitude
-                        if dist <= 60 then
-                            if v35:FindFirstChild("ProximityPrompt") and v35.ProximityPrompt.Enabled then
-                                pcall(function()
-                                    hrp.CFrame = v35.CFrame
+                for _, present in pairs(workspace.Effects:GetChildren()) do
+                    if present.Name == "Present" then
+                        local hrp = GetHRP()
+                        if hrp then
+                            local distance = (hrp.Position - present.Position).Magnitude
+                            if distance <= 50 then
+                                if present:FindFirstChild("ProximityPrompt") and present.ProximityPrompt.Enabled then
+                                    TeleportTo(present.CFrame)
                                     task.wait(0.1)
-                                    fireproximityprompt(v35.ProximityPrompt)
-                                end)
+                                end
                             end
                         end
-                        task.wait(0.3)
+                        task.wait(0.2)
                     end
                 end
-                task.wait(1)
-            end
-            collecting = false
-        end)
-    end
-end)
-
-task.spawn(function()
-    while getgenv().KeremDaddy do
-        task.wait(5)
-        
-        if collecting then continue end
-        
-        pcall(function()
-            local santa = workspace.NPCs["Santa's Sleigh"]
-            if santa and santa:FindFirstChild("Deer") then
-                local santaPos = santa.Deer["Body.006"].CFrame
-                hrp.CFrame = santaPos * CFrame.new(math.random(-20, 20), math.random(-5, 5), math.random(-20, 20))
-            end
-        end)
-        
-        for _, v21 in pairs(workspace.Effects:GetChildren()) do
-            if v21.Name == "Present" and not collecting then
-                local dist = (hrp.Position - v21.Position).Magnitude
-                if dist <= 50 then
-                    if v21:FindFirstChild("ProximityPrompt") and v21.ProximityPrompt.Enabled then
-                        pcall(function()
-                            hrp.CFrame = v21.CFrame
-                            task.wait(0.1)
-                        end)
-                    end
-                end
+                
                 task.wait(0.5)
             end
-        end
+            isMoving = false
+        end)
     end
 end)
 
+local mainLoop
+local function StartMainLoop()
+    if mainLoop then return end
+    mainLoop = task.spawn(function()
+        while getgenv().FarmActive do
+            task.wait(3)
+            
+            if isMoving then continue end
+            
+            pcall(function()
+                local santa = workspace.NPCs:FindFirstChild("Santa's Sleigh")
+                if santa and santa:FindFirstChild("Deer") and santa.Deer:FindFirstChild("Body.006") then
+                    local santaPos = santa.Deer["Body.006"].Position
+                    local offset = Vector3.new(
+                        math.random(-25, 25),
+                        math.random(-10, 10),
+                        math.random(-25, 25)
+                    )
+                    TeleportTo(CFrame.new(santaPos + offset))
+                end
+            end)
+            
+            task.wait(1)
+            
+            for _, present in pairs(workspace.Effects:GetChildren()) do
+                if present.Name == "Present" and not isMoving then
+                    local hrp = GetHRP()
+                    if hrp then
+                        local distance = (hrp.Position - present.Position).Magnitude
+                        if distance <= 40 and distance > 5 then
+                            if present:FindFirstChild("ProximityPrompt") and present.ProximityPrompt.Enabled then
+                                TeleportTo(present.CFrame)
+                                task.wait(0.1)
+                            end
+                        end
+                    end
+                    task.wait(0.3)
+                end
+            end
+        end
+    end)
+end
+
+local function StopMainLoop()
+    if mainLoop then
+        task.cancel(mainLoop)
+        mainLoop = nil
+    end
+end
+
 ToggleButton.MouseButton1Click:Connect(function()
-    getgenv().KeremDaddy = not getgenv().KeremDaddy
+    getgenv().FarmActive = not getgenv().FarmActive
     
-    if getgenv().KeremDaddy then
+    if getgenv().FarmActive then
         ToggleButton.Text = "ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
+        StartSkyWalk()
+        StartMainLoop()
     else
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        StopSkyWalk()
+        StopMainLoop()
     end
 end)
