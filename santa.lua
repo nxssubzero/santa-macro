@@ -63,6 +63,42 @@ local v7 = true
 local v8 = workspace.CurrentCamera
 local v11
 
+local function SmoothTween(targetPos, duration)
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local TweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(
+        duration or 0.5,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.Out
+    )
+    
+    local goal = {CFrame = CFrame.new(targetPos)}
+    local tween = TweenService:Create(hrp, info, goal)
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+local function FollowSanta()
+    pcall(function()
+        local santa = workspace.NPCs["Santa's Sleigh"]
+        if santa and santa:FindFirstChild("Deer") then
+            local santaPos = santa.Deer["Body.006"].Position
+            local offset = Vector3.new(
+                math.random(-15, 15),
+                math.random(-5, 5),
+                math.random(-15, 15)
+            )
+            local targetPos = santaPos + offset
+            SmoothTween(targetPos, 0.8)
+        end
+    end)
+end
+
 local function v9(v14)
     if getgenv().Webhook and getgenv().Webhook ~= "" then
         pcall(function()
@@ -111,25 +147,28 @@ workspace.Effects.ChildAdded:Connect(function(v17)
         v5 = true
         task.spawn(function()
             while v17.Parent and v17.Parent == workspace.Effects and getgenv().KeremDaddy do
-                if v11 then pcall(function() v11:Disconnect() end) end
                 pcall(function()
-                    game.Players.LocalPlayer.Character.Humanoid:MoveTo(v17.Top.TopMiddle.Position)
+                    local giftPos = v17.Top.TopMiddle.Position
+                    SmoothTween(giftPos, 1.2)
                 end)
-                v11 = game.Players.LocalPlayer.Character.Humanoid.MoveToFinished:Connect(function()
-                    for _, v35 in pairs(workspace.Effects:GetChildren()) do
-                        if v35.Name == "Present" then
-                            local v38 = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v35.Position).Magnitude
-                            if v38 <= 50 then
-                                if v35:FindFirstChild("ProximityPrompt") and v35.ProximityPrompt.Enabled then
-                                    pcall(function()
-                                        fireproximityprompt(v35.ProximityPrompt)
-                                    end)
-                                end
+                
+                task.wait(1.5)
+                
+                for _, v35 in pairs(workspace.Effects:GetChildren()) do
+                    if v35.Name == "Present" then
+                        local v38 = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v35.Position).Magnitude
+                        if v38 <= 50 then
+                            if v35:FindFirstChild("ProximityPrompt") and v35.ProximityPrompt.Enabled then
+                                pcall(function()
+                                    SmoothTween(v35.Position, 0.6)
+                                    task.wait(0.2)
+                                    fireproximityprompt(v35.ProximityPrompt)
+                                end)
                             end
-                            task.wait(0.35)
                         end
+                        task.wait(0.4)
                     end
-                end)
+                end
                 task.wait(1)
             end
             v5 = false
@@ -137,9 +176,10 @@ workspace.Effects.ChildAdded:Connect(function(v17)
     end
 end)
 
+local lastFollowTime = 0
 local function MainLoop()
     while getgenv().KeremDaddy do
-        task.wait()
+        task.wait(0.1)
         if v5 then continue end
         
         pcall(function()
@@ -147,6 +187,12 @@ local function MainLoop()
             local v18 = v8.CFrame.Position
             v8.CFrame = CFrame.lookAt(v18, v4.Position)
         end)
+        
+        local currentTime = tick()
+        if currentTime - lastFollowTime >= 3 then
+            lastFollowTime = currentTime
+            FollowSanta()
+        end
         
         if v7 and not v2 then
             task.wait(1)
@@ -160,11 +206,12 @@ local function MainLoop()
                     
                     for _, v21 in pairs(workspace.Effects:GetChildren()) do
                         if v21.Name == "Present" then
-                            local v26 = (v6 - v21.Position).Magnitude
-                            if v26 <= 30 then
+                            local v26 = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v21.Position).Magnitude
+                            if v26 <= 40 then
                                 if v21:FindFirstChild("ProximityPrompt") and v21.ProximityPrompt.Enabled then
                                     pcall(function()
-                                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v21.CFrame
+                                        SmoothTween(v21.Position, 0.7)
+                                        task.wait(0.2)
                                     end)
                                 end
                             end
@@ -172,18 +219,9 @@ local function MainLoop()
                         end
                     end
                     
-                    pcall(function()
-                        game.Players.LocalPlayer.Character.Humanoid:MoveTo(v6)
-                    end)
-                    
-                    local v32 = game.Players.LocalPlayer.Character.Humanoid.MoveToFinished:Connect(function()
-                        v7 = true
-                        pcall(function() v32:Disconnect() end)
-                    end)
-                    
                     task.delay(19, function()
                         v2 = false
-                        pcall(function() v32:Disconnect() end)
+                        v7 = true
                     end)
                 end)
             end)
