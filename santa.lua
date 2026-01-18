@@ -516,7 +516,7 @@ btn.MouseButton1Click:Connect(function()
     getgenv().v9daddy = not getgenv().v9daddy
     
     if getgenv().v9daddy then
-        btn.Text = "stop"
+        btn.Text = "Stop"
         btn.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
         
         if loop then task.cancel(loop) end
@@ -534,8 +534,8 @@ btn.MouseButton1Click:Connect(function()
             end
             
             startm1()
-            task.wait(0.5)
             starttimer()
+            task.wait(0.5)
             
             while getgenv().v9daddy do
                 task.wait(0.05)
@@ -571,7 +571,7 @@ btn.MouseButton1Click:Connect(function()
             stopm1()
         end)
     else
-        btn.Text = "start"
+        btn.Text = "Start"
         btn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         stopm1()
         timer = false
