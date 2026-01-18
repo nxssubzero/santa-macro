@@ -253,8 +253,14 @@ local function collectnearby()
                 cam.CFrame = CFrame.lookAt(cpos, p.Position)
                 task.wait(0.1)
                 
-                plr.Character.Humanoid:MoveTo(p.Position)
-                task.wait(0.35)
+                local distToPresent = (plr.Character.HumanoidRootPart.Position - p.Position).Magnitude
+                if distToPresent <= 20 then
+                    plr.Character.HumanoidRootPart.CFrame = CFrame.new(p.Position)
+                    task.wait(0.1)
+                else
+                    plr.Character.Humanoid:MoveTo(p.Position)
+                    task.wait(0.35)
+                end
                 
                 if p.Parent and p:FindFirstChild("ProximityPrompt") and p:FindFirstChild("ProximityPrompt").Enabled == true then
                     for i = 1, 6 do
@@ -264,6 +270,17 @@ local function collectnearby()
                         else
                             break
                         end
+                    end
+                end
+                
+                if savedpos and getgenv().v9daddy then
+                    local distToSaved = (plr.Character.HumanoidRootPart.Position - savedpos.Position).Magnitude
+                    if distToSaved <= 20 then
+                        plr.Character.HumanoidRootPart.CFrame = savedpos
+                        task.wait(0.1)
+                    else
+                        plr.Character.Humanoid:MoveTo(savedpos.Position)
+                        task.wait(0.35)
                     end
                 end
             end
@@ -277,8 +294,14 @@ local function collectnearby()
     task.wait(0.3)
     
     if savedpos and getgenv().v9daddy then
-        plr.Character.Humanoid:MoveTo(savedpos.Position)
-        task.wait(0.35)
+        local distToSaved = (plr.Character.HumanoidRootPart.Position - savedpos.Position).Magnitude
+        if distToSaved <= 20 then
+            plr.Character.HumanoidRootPart.CFrame = savedpos
+            task.wait(0.1)
+        else
+            plr.Character.Humanoid:MoveTo(savedpos.Position)
+            task.wait(0.35)
+        end
     end
     
     local cpos = cam.CFrame.Position
