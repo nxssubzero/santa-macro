@@ -143,7 +143,7 @@ end)
 savebtn.MouseButton1Click:Connect(function()
     local hrp = plr.Character.HumanoidRootPart
     savedpos = hrp.CFrame
-    status.Text = "total: " .. count .. " | pos: saved! | timer: " .. timerem .. "s"
+    status.Text = "Total: " .. count .. " | Pos: saved! | Timer: " .. timerem .. "s"
     savebtn.BackgroundColor3 = Color3.fromRGB(50, 160, 50)
     task.wait(0.5)
     savebtn.BackgroundColor3 = Color3.fromRGB(60, 120, 160)
@@ -432,7 +432,7 @@ uis.InputBegan:Connect(function(input, gp)
         getgenv().v9daddy = not getgenv().v9daddy
         
         if getgenv().v9daddy then
-            btn.Text = "stop"
+            btn.Text = "Stop"
             btn.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
             
             if loop then task.cancel(loop) end
@@ -487,7 +487,7 @@ uis.InputBegan:Connect(function(input, gp)
                 stopm1()
             end)
         else
-            btn.Text = "start"
+            btn.Text = "Start"
             btn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
             stopm1()
             timer = false
