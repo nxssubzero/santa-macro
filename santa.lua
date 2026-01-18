@@ -440,18 +440,24 @@ uis.InputBegan:Connect(function(input, gp)
                 if not init then
                     init = true
                     vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
-                    task.wait(1)
+                    task.wait(0.1)
                     vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
-                    task.wait(0.2)
+                    task.wait(0.5)
                     vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
-                    task.wait(1.5)
+                    task.wait(0.1)
                     vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
                     task.wait(0.5)
                 end
                 
+                if savedpos then
+                    plr.Character.Humanoid:MoveTo(savedpos.Position)
+                    plr.Character.Humanoid.MoveToFinished:Wait()
+                    task.wait(0.3)
+                end
+                
                 startm1()
-                task.wait(0.5)
                 starttimer()
+                task.wait(0.5)
                 
                 while getgenv().v9daddy do
                     task.wait(0.05)
@@ -521,16 +527,22 @@ btn.MouseButton1Click:Connect(function()
         
         if loop then task.cancel(loop) end
         loop = task.spawn(function()
-            if not init then
-                init = true
-                vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
-                task.wait(1)
-                vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
-                task.wait(0.2)
-                vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
-                task.wait(1.5)
-                vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
-                task.wait(0.5)
+if not init then
+    init = true
+    vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
+    task.wait(0.1)
+    vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
+    task.wait(0.5)
+    vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
+    task.wait(0.1)
+    vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
+    task.wait(0.5)
+end
+            
+            if savedpos then
+                plr.Character.Humanoid:MoveTo(savedpos.Position)
+                plr.Character.Humanoid.MoveToFinished:Wait()
+                task.wait(0.3)
             end
             
             startm1()
