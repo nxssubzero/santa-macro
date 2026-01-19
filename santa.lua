@@ -11,6 +11,7 @@ if getgenv().v9running then
     getgenv().v9daddy = false
     task.wait(0.5)
 end
+getgenv().v9running = true
 
 local function savecount(c)
     writefile("santa_count.txt", tostring(c))
@@ -111,19 +112,37 @@ getgenv().v9daddy = false
 local vim = Instance.new("VirtualInputManager")
 local pps = game:GetService("ProximityPromptService")
 local uis = game:GetService("UserInputService")
-local cd = false
 local count = loadcount()
-local santa = workspace.NPCs["Santa's Sleigh"].Deer["Body.006"]
 local busy = false
 local savedpos = nil
-local canuse = true
 local cam = workspace.CurrentCamera
-local holding = false
 local timer = false
 local timerem = 0
 local collecting = false
 local init = false
 local start = os.time()
+local loop
+local connections = {}
+
+local function getSanta()
+    local npcs = workspace:FindFirstChild("NPCs")
+    if npcs then
+        local sleigh = npcs:FindFirstChild("Santa's Sleigh")
+        if sleigh then
+            local deer = sleigh:FindFirstChild("Deer")
+            if deer then
+                return deer:FindFirstChild("Body.006")
+            end
+        end
+    end
+    return nil
+end
+
+local santa = getSanta()
+if not santa then
+    warn("Santa not found!")
+    return
+end
 
 local function fmttime(s)
     local h = math.floor(s / 3600)
@@ -150,7 +169,6 @@ savebtn.MouseButton1Click:Connect(function()
 end)
 
 local function startm1()
-    holding = true
     task.spawn(function()
         while getgenv().v9daddy and not collecting do
             vim:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -160,7 +178,6 @@ local function startm1()
 end
 
 local function stopm1()
-    holding = false
     vim:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 end
 
@@ -384,7 +401,6 @@ workspace.Effects.ChildRemoved:Connect(function(c)
     end
 end)
 
-local conn
 workspace.Effects.ChildAdded:Connect(function(c)
     if not getgenv().v9daddy or timer or collecting then return end
     task.wait(0.1)
@@ -392,9 +408,12 @@ workspace.Effects.ChildAdded:Connect(function(c)
         if busy then return end
         busy = true
         while c.Parent and c.Parent == workspace.Effects and getgenv().v9daddy and not timer and not collecting do
-            if conn then conn:Disconnect() end
+            if connections.moveConn then 
+                connections.moveConn:Disconnect() 
+            end
+            
             plr.Character.Humanoid:MoveTo(c.Top.TopMiddle.Position)
-            conn = plr.Character.Humanoid.MoveToFinished:Connect(function()
+            connections.moveConn = plr.Character.Humanoid.MoveToFinished:Connect(function()
                 for _, p in pairs(workspace.Effects:GetChildren()) do
                     if p.Name == "Present" and p.Parent then
                         local dist = (plr.Character.HumanoidRootPart.Position - p.Position).Magnitude
@@ -489,29 +508,6 @@ uis.InputBegan:Connect(function(input, gp)
                         local cpos = cam.CFrame.Position
                         cam.CFrame = CFrame.lookAt(cpos, santa.Position)
                     end
-                    
-                    if canuse and not cd and not timer and not collecting then
-                        task.wait(1)
-                        cd = true
-                        spawn(function()
-                            canuse = false
-                            vim:SendKeyEvent(true, Enum.KeyCode.X, false, game)
-                            task.delay(13, function()
-                                vim:SendKeyEvent(false, Enum.KeyCode.X, false, game)
-                                task.wait(1)
-                                collectclose()
-                                if savedpos then
-                                    plr.Character.Humanoid:MoveTo(savedpos.Position)
-                                end
-                                local moveconn = plr.Character.Humanoid.MoveToFinished:Connect(function()
-                                    canuse = true
-                                end)
-                                task.delay(19, function()
-                                    cd = false
-                                end)
-                            end)
-                        end)
-                    end
                 end
                 stopm1()
             end)
@@ -534,13 +530,19 @@ sg.Destroying:Connect(function()
     getgenv().v9running = false
     stopm1()
     timer = false
+    
+    for _, conn in pairs(connections) do
+        if conn and conn.Disconnect then
+            conn:Disconnect()
+        end
+    end
+    
     if loop then
         task.cancel(loop)
         loop = nil
     end
 end)
 
-local loop
 btn.MouseButton1Click:Connect(function()
     getgenv().v9daddy = not getgenv().v9daddy
     
@@ -550,17 +552,17 @@ btn.MouseButton1Click:Connect(function()
         
         if loop then task.cancel(loop) end
         loop = task.spawn(function()
-if not init then
-    init = true
-    vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
-    task.wait(0.1)
-    vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
-    task.wait(0.5)
-    vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
-    task.wait(0.1)
-    vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
-    task.wait(0.5)
-end
+            if not init then
+                init = true
+                vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
+                task.wait(0.1)
+                vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
+                task.wait(0.5)
+                vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
+                task.wait(0.1)
+                vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
+                task.wait(0.5)
+            end
             
             if savedpos then
                 plr.Character.Humanoid:MoveTo(savedpos.Position)
@@ -578,29 +580,6 @@ end
                 if not busy and not collecting then
                     local cpos = cam.CFrame.Position
                     cam.CFrame = CFrame.lookAt(cpos, santa.Position)
-                end
-                
-                if canuse and not cd and not timer and not collecting then
-                    task.wait(1)
-                    cd = true
-                    spawn(function()
-                        canuse = false
-                        vim:SendKeyEvent(true, Enum.KeyCode.X, false, game)
-                        task.delay(13, function()
-                            vim:SendKeyEvent(false, Enum.KeyCode.X, false, game)
-                            task.wait(1)
-                            collectclose()
-                            if savedpos then
-                                plr.Character.Humanoid:MoveTo(savedpos.Position)
-                            end
-                            local moveconn = plr.Character.Humanoid.MoveToFinished:Connect(function()
-                                canuse = true
-                            end)
-                            task.delay(19, function()
-                                cd = false
-                            end)
-                        end)
-                    end)
                 end
             end
             stopm1()
