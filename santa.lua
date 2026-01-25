@@ -204,10 +204,7 @@ local function checkspecial()
                         end
                     end
                     local low = txt:lower()
-                    if low:find("race") and low:find("reroll") then
-                        return true, "race reroll - " .. txt
-                    end
-                    if low:find("new title") or low:find("new item") or low:find("unlocked") or low:find("obtained") or low:find("max capacity") then
+                    if low:find("candy") or low:find("cane") or low:find("new title") or low:find("new item") or low:find("unlocked") or low:find("obtained") or low:find("max capacity") then
                         return true, txt
                     end
                 end
@@ -229,10 +226,7 @@ local function checkspecial()
                         end
                     end
                     local low = txt:lower()
-                    if low:find("race") and low:find("reroll") then
-                        return true, "race reroll - " .. txt
-                    end
-                    if low:find("new title") or low:find("new item") or low:find("unlocked") or low:find("obtained") or low:find("max capacity") then
+                    if low:find("candy") or low:find("cane") or low:find("new title") or low:find("new item") or low:find("unlocked") or low:find("obtained") or low:find("max capacity") then
                         return true, txt
                     end
                 end
