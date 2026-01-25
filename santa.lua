@@ -292,7 +292,7 @@ local function collectnearby()
                 
                 if savedpos and getgenv().v9daddy then
                     local distToSaved = (plr.Character.HumanoidRootPart.Position - savedpos.Position).Magnitude
-                    if distToSaved <= 20 then
+                    if distToSaved <= 100 then
                         plr.Character.HumanoidRootPart.CFrame = savedpos
                         task.wait(0.1)
                     else
