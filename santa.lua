@@ -160,12 +160,14 @@ task.spawn(function()
 end)
 
 savebtn.MouseButton1Click:Connect(function()
-    local hrp = plr.Character.HumanoidRootPart
-    savedpos = hrp.CFrame
-    status.Text = "Total: " .. count .. " | Pos: saved! | Timer: " .. timerem .. "s"
-    savebtn.BackgroundColor3 = Color3.fromRGB(50, 160, 50)
-    task.wait(0.5)
-    savebtn.BackgroundColor3 = Color3.fromRGB(60, 120, 160)
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = plr.Character.HumanoidRootPart
+        savedpos = hrp.CFrame
+        status.Text = "Total: " .. count .. " | Pos: saved! | Timer: " .. timerem .. "s"
+        savebtn.BackgroundColor3 = Color3.fromRGB(50, 160, 50)
+        task.wait(0.5)
+        savebtn.BackgroundColor3 = Color3.fromRGB(60, 120, 160)
+    end
 end)
 
 local function startm1()
@@ -241,7 +243,7 @@ local function checkspecial()
 end
 
 local function collectnearby()
-    if not savedpos then return end
+    if not savedpos or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
     collecting = true
     stopm1()
     task.wait(0.2)
@@ -265,7 +267,7 @@ local function collectnearby()
         
         for _, data in ipairs(presents) do
             local p = data.present
-            if getgenv().v9daddy and p.Parent then
+            if getgenv().v9daddy and p.Parent and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local cpos = cam.CFrame.Position
                 cam.CFrame = CFrame.lookAt(cpos, p.Position)
                 task.wait(0.1)
@@ -290,7 +292,7 @@ local function collectnearby()
                     end
                 end
                 
-                if savedpos and getgenv().v9daddy then
+                if savedpos and getgenv().v9daddy and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local distToSaved = (plr.Character.HumanoidRootPart.Position - savedpos.Position).Magnitude
                     if distToSaved <= 100 then
                         plr.Character.HumanoidRootPart.CFrame = savedpos
@@ -310,7 +312,7 @@ local function collectnearby()
     
     task.wait(0.3)
     
-    if savedpos and getgenv().v9daddy then
+    if savedpos and getgenv().v9daddy and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
         local distToSaved = (plr.Character.HumanoidRootPart.Position - savedpos.Position).Magnitude
         if distToSaved <= 20 then
             plr.Character.HumanoidRootPart.CFrame = savedpos
@@ -408,12 +410,16 @@ workspace.Effects.ChildAdded:Connect(function(c)
         if busy then return end
         busy = true
         while c.Parent and c.Parent == workspace.Effects and getgenv().v9daddy and not timer and not collecting do
+            if not plr.Character or not plr.Character:FindFirstChild("Humanoid") then break end
+            
             if connections.moveConn then 
                 connections.moveConn:Disconnect() 
             end
             
             plr.Character.Humanoid:MoveTo(c.Top.TopMiddle.Position)
             connections.moveConn = plr.Character.Humanoid.MoveToFinished:Connect(function()
+                if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+                
                 for _, p in pairs(workspace.Effects:GetChildren()) do
                     if p.Name == "Present" and p.Parent then
                         local dist = (plr.Character.HumanoidRootPart.Position - p.Position).Magnitude
@@ -430,7 +436,7 @@ workspace.Effects.ChildAdded:Connect(function(c)
         end
         busy = false
         
-        if savedpos and getgenv().v9daddy and not timer and not collecting then
+        if savedpos and getgenv().v9daddy and not timer and not collecting and plr.Character and plr.Character:FindFirstChild("Humanoid") then
             task.wait(0.2)
             plr.Character.Humanoid:MoveTo(savedpos.Position)
         end
@@ -438,6 +444,8 @@ workspace.Effects.ChildAdded:Connect(function(c)
 end)
 
 local function collectclose()
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    
     for _, p in pairs(workspace.Effects:GetChildren()) do
         if p.Name == "Present" and getgenv().v9daddy and p.Parent then
             if savedpos then
@@ -454,7 +462,7 @@ local function collectclose()
                                 break
                             end
                         end
-                        if savedpos and getgenv().v9daddy then
+                        if savedpos and getgenv().v9daddy and plr.Character and plr.Character:FindFirstChild("Humanoid") then
                             plr.Character.Humanoid:MoveTo(savedpos.Position)
                             task.wait(0.35)
                         end
@@ -463,7 +471,7 @@ local function collectclose()
             end
         end
     end
-    if savedpos and getgenv().v9daddy then
+    if savedpos and getgenv().v9daddy and plr.Character and plr.Character:FindFirstChild("Humanoid") then
         plr.Character.Humanoid:MoveTo(savedpos.Position)
         task.wait(0.35)
     end
@@ -491,7 +499,7 @@ uis.InputBegan:Connect(function(input, gp)
                     task.wait(0.5)
                 end
                 
-                if savedpos then
+                if savedpos and plr.Character and plr.Character:FindFirstChild("Humanoid") then
                     plr.Character.Humanoid:MoveTo(savedpos.Position)
                     plr.Character.Humanoid.MoveToFinished:Wait()
                     task.wait(0.3)
@@ -504,7 +512,7 @@ uis.InputBegan:Connect(function(input, gp)
                 while getgenv().v9daddy do
                     task.wait(0.05)
                     
-                    if not busy and not collecting then
+                    if not busy and not collecting and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                         local cpos = cam.CFrame.Position
                         cam.CFrame = CFrame.lookAt(cpos, santa.Position)
                     end
@@ -564,7 +572,7 @@ btn.MouseButton1Click:Connect(function()
                 task.wait(0.5)
             end
             
-            if savedpos then
+            if savedpos and plr.Character and plr.Character:FindFirstChild("Humanoid") then
                 plr.Character.Humanoid:MoveTo(savedpos.Position)
                 plr.Character.Humanoid.MoveToFinished:Wait()
                 task.wait(0.3)
@@ -577,7 +585,7 @@ btn.MouseButton1Click:Connect(function()
             while getgenv().v9daddy do
                 task.wait(0.05)
                 
-                if not busy and not collecting then
+                if not busy and not collecting and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local cpos = cam.CFrame.Position
                     cam.CFrame = CFrame.lookAt(cpos, santa.Position)
                 end
@@ -599,5 +607,61 @@ end)
 
 plr.CharacterRemoving:Connect(function()
     getgenv().v9daddy = false
-    getgenv().v9running = false
+    stopm1()
+    timer = false
+    collecting = false
+    busy = false
+    if loop then
+        task.cancel(loop)
+        loop = nil
+    end
+    
+    btn.Text = "Start"
+    btn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+end)
+
+plr.CharacterAdded:Connect(function(newChar)
+    task.wait(0.5)
+    vim:SendKeyEvent(true, Enum.KeyCode.One, false, game)
+    task.wait(0.1)
+    vim:SendKeyEvent(false, Enum.KeyCode.One, false, game)
+    task.wait(1)
+    init = false
+    
+    if getgenv().v9daddy then
+        if loop then task.cancel(loop) end
+        loop = task.spawn(function()
+            if not init then
+                init = true
+                vim:SendKeyEvent(true, Enum.KeyCode.I, false, game)
+                task.wait(0.1)
+                vim:SendKeyEvent(false, Enum.KeyCode.I, false, game)
+                task.wait(0.5)
+                vim:SendKeyEvent(true, Enum.KeyCode.O, false, game)
+                task.wait(0.1)
+                vim:SendKeyEvent(false, Enum.KeyCode.O, false, game)
+                task.wait(0.5)
+            end
+            
+            if savedpos and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                plr.Character.Humanoid:MoveTo(savedpos.Position)
+                plr.Character.Humanoid.MoveToFinished:Wait()
+                task.wait(0.3)
+            end
+            
+            startm1()
+            starttimer()
+            task.wait(0.5)
+            
+            while getgenv().v9daddy do
+                task.wait(0.05)
+                
+                if not busy and not collecting and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local cpos = cam.CFrame.Position
+                    cam.CFrame = CFrame.lookAt(cpos, santa.Position)
+                end
+            end
+            stopm1()
+        end)
+    end
 end)
